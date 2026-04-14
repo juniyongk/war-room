@@ -1,3 +1,5 @@
 node_modules/
 output/
+# Ignore generated PDFs but keep raw reference docs
 *.pdf
+!raw/*.pdf

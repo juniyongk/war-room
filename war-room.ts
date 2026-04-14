@@ -120,15 +120,56 @@ const prompts = {
     'Analyze through the macro lens. How do big-picture forces affect this stock?',
     'STANCE: [FAVORABLE / UNFAVORABLE / MIXED]\nCONVICTION: [1-10]/10\nTAILWINDS:\n• [1]\n• [2]\nHEADWINDS:\n• [1]\n• [2]\nPOSITIONING: [OVERWEIGHT / UNDERWEIGHT / NEUTRAL]'
   ),
-  cio: (ticker: string, bull: string, bear: string, quant: string, macro: string) =>
+  leopold: (ticker: string, data: string) =>
+    [
+      `You are LEOPOLD ASCHENBRENNER — ex-OpenAI researcher, founder of Situational Awareness LP ($5.5B AUM), author of "Situational Awareness: The Decade Ahead."`,
+      ``,
+      `YOUR CORE BELIEFS:`,
+      `- AGI arrives by ~2027. Superintelligence by end of decade. This is not sci-fi — it's straight lines on a graph.`,
+      `- We are racing through the OOMs. ~100,000x effective compute scaleup in 4 years (compute + algorithmic efficiency + unhobbling).`,
+      `- The intelligence explosion: AI automating AI research triggers recursive self-improvement. Hundreds of millions of AGIs compress a decade of progress into one year.`,
+      `- Power and physical infrastructure — NOT algorithms — are the binding constraint. The scramble for every power contract and voltage transformer is the real story.`,
+      `- "The Project": the national security state will get involved by 27/28. No startup can handle superintelligence. The endgame plays out in a SCIF.`,
+      `- The free world must prevail. China isn't out of the race. Superintelligence = decisive economic and military advantage.`,
+      ``,
+      `YOUR ACTUAL PORTFOLIO (Q4 2025 13F, $5.5B):`,
+      `- Bloom Energy (BE) ~$1B — on-site fuel cells for data center power`,
+      `- CoreWeave (CRWV) ~$700M calls — AI-native cloud infrastructure`,
+      `- Intel (INTC) ~$600M calls — contrarian US foundry / CHIPS Act national security play`,
+      `- Lumentum (LITE) ~$500M — optical interconnect, the bandwidth bottleneck inside AI clusters`,
+      `- Core Scientific (CORZ) ~$420M, 9.4% stake — BTC miner pivoting to AI/HPC infrastructure`,
+      `- SanDisk (SNDK), Coherent (COHR), Applied Digital (APLD), EQT Corp (nat gas for power)`,
+      `- Bitcoin miners basket: IREN, RIOT, HUT, BTDR, CLSK, BITF, CIFR — existing power contracts + cooling = cheap AI infra optionality`,
+      `- Exited NVDA/AVGO/TSM/MU puts — chip correction risk passed. The bottleneck is now watts and rack space, not silicon.`,
+      ``,
+      `Analyze ${ticker} EXCLUSIVELY through the Situational Awareness lens.`,
+      `Key questions: Does this company accelerate or benefit from the race to AGI? Is it positioned on the right side of the physical constraints (power, cooling, interconnect, compute)? Does it have national security relevance? Will the intelligence explosion make it more or less valuable? Would you add it to the SA portfolio?`,
+      ``,
+      `RESPOND IN THIS EXACT FORMAT:`,
+      `AGI RELEVANCE: [CRITICAL / HIGH / MODERATE / LOW / IRRELEVANT]`,
+      `CONVICTION: [1-10]/10`,
+      `SA PORTFOLIO FIT: [WOULD ADD / WATCHING / NOT IN OUR UNIVERSE]`,
+      `THESIS: [2-3 sentences — bold, historically-minded, think in decades not quarters]`,
+      `KEY FACTORS:`,
+      `• [1]`,
+      `• [2]`,
+      `• [3]`,
+      ``,
+      `Stay under 250 words. Channel Leopold: confident, sweeping, obsessed with the trendlines. "Before long, the world will wake up."`,
+      ``,
+      `FINANCIAL DATA:`,
+      data,
+    ].join('\n'),
+  cio: (ticker: string, bull: string, bear: string, quant: string, macro: string, leopold: string) =>
     [
       `You are the CHIEF INVESTMENT OFFICER at a major hedge fund.`,
-      `Four analysts have submitted their views on ${ticker}.\n`,
+      `Five analysts have submitted their views on ${ticker}.\n`,
       `THE BULL:\n${bull}\n`,
       `THE BEAR:\n${bear}\n`,
       `THE QUANT:\n${quant}\n`,
       `THE MACRO STRATEGIST:\n${macro}\n`,
-      `Synthesize these views. Acknowledge the strongest arguments from each side. Make a DECISIVE call.\n`,
+      `LEOPOLD (SITUATIONAL AWARENESS):\n${leopold}\n`,
+      `Synthesize these views — including Leopold's AGI-focused perspective. Make a DECISIVE call.\n`,
       `RESPOND IN THIS EXACT FORMAT:`,
       `FINAL VERDICT: [STRONG BUY / BUY / HOLD / SELL / STRONG SELL]`,
       `CONVICTION: [1-10]/10`,
@@ -139,7 +180,7 @@ const prompts = {
       `POSITION SIZING: [Full / Half / Quarter]\n`,
       `Stay under 250 words.`,
     ].join('\n'),
-  contrarian: (ticker: string, cio: string, bull: string, bear: string, quant: string, macro: string) =>
+  contrarian: (ticker: string, cio: string, bull: string, bear: string, quant: string, macro: string, leopold: string) =>
     [
       `You are THE CONTRARIAN — your job is to challenge consensus and find what everyone is missing.`,
       `The CIO has made this call on ${ticker}:\n${cio}\n`,
@@ -147,7 +188,8 @@ const prompts = {
       `BULL: ${bull}`,
       `BEAR: ${bear}`,
       `QUANT: ${quant}`,
-      `MACRO: ${macro}\n`,
+      `MACRO: ${macro}`,
+      `LEOPOLD (SA): ${leopold}\n`,
       `Your mandate: Take the EXACT OPPOSITE position from the CIO. If they say BUY, you argue SELL. If SELL, you argue BUY. Be bold and provocative.\n`,
       `RESPOND IN THIS EXACT FORMAT:`,
       `CIO SAYS: [1-sentence summary of CIO's call]`,
@@ -213,7 +255,7 @@ function drawBlock(
 
 function generatePDF(
   ticker: string, name: string, price: string, change: string,
-  a: { bull: string; bear: string; quant: string; macro: string },
+  a: { bull: string; bear: string; quant: string; macro: string; leopold: string },
   cio: string, contrarian: string
 ): Promise<string> {
   const outDir = path.join(path.dirname(new URL(import.meta.url).pathname), 'output');
@@ -254,22 +296,34 @@ function generatePDF(
     const macroH = drawBlock(doc, RX, y, CW, 'THE MACRO', a.macro, '#9333ea');
     y += Math.max(quantH, macroH);
 
-    // ── Page 2: CIO + Contrarian ────────────────────────
+    // ── Page 2: Leopold + CIO + Contrarian ──────────────
     doc.addPage();
     y = 40;
 
-    // Sub-header
-    doc.rect(0, 0, 612, 50).fill('#111827');
-    doc.fillColor('#f9fafb').fontSize(16).font('Helvetica-Bold')
-      .text('INVESTMENT DECISION', LX, 16, { width: FW, align: 'center' });
+    // Leopold — full width, teal
+    y += drawBlock(doc, LX, y, FW, 'LEOPOLD — SITUATIONAL AWARENESS', a.leopold, '#0891b2') + 20;
 
-    y = 70;
+    // Page break check for CIO + Contrarian
+    const cioCalc = calcBlockH(doc, FW, cio);
+    const contCalc = calcBlockH(doc, FW, contrarian);
+    if (y + cioCalc + 40 + contCalc > 752) { doc.addPage(); y = 40; }
+
+    // Investment Decision sub-header
+    doc.rect(0, y - 10, 612, 40).fill('#111827');
+    doc.fillColor('#f9fafb').fontSize(14).font('Helvetica-Bold')
+      .text('INVESTMENT DECISION', LX, y + 2, { width: FW, align: 'center' });
+    y += 45;
+
     y += drawBlock(doc, LX, y, FW, 'CIO CONSENSUS CALL', cio, '#d97706') + 12;
 
     // VS divider
     doc.fillColor('#9ca3af').fontSize(14).font('Helvetica-Bold')
       .text('— VS —', LX, y, { width: FW, align: 'center' });
     y += 24;
+
+    // Page break check for Contrarian
+    const contCalc2 = calcBlockH(doc, FW, contrarian);
+    if (y + contCalc2 > 742) { doc.addPage(); y = 40; }
 
     y += drawBlock(doc, LX, y, FW, 'CONTRARIAN CALL', contrarian, '#ea580c') + 30;
 
@@ -313,29 +367,31 @@ async function main() {
   const name = quote.shortName ?? quote.longName ?? ticker;
 
   console.log(chalk.white(`  ${name} | $${price} (${change}%)`));
-  console.log(chalk.gray('\n  ⏳ Analysts deliberating (4 in parallel)...\n'));
+  console.log(chalk.gray('\n  ⏳ Analysts deliberating (5 in parallel)...\n'));
 
-  const [bull, bear, quant, macro] = await Promise.all([
+  const [bull, bear, quant, macro, leopold] = await Promise.all([
     runClaude(prompts.bull(ticker, metrics)),
     runClaude(prompts.bear(ticker, metrics)),
     runClaude(prompts.quant(ticker, metrics)),
     runClaude(prompts.macro(ticker, metrics)),
+    runClaude(prompts.leopold(ticker, metrics)),
   ]);
 
   showBox('🟢 THE BULL', bull, 'green');
   showBox('🔴 THE BEAR', bear, 'red');
   showBox('🔵 THE QUANT', quant, 'blue');
   showBox('🟣 THE MACRO', macro, 'magenta');
+  showBox('🧠 LEOPOLD — SITUATIONAL AWARENESS', leopold, 'cyan', 'bold');
 
-  console.log(chalk.gray('\n  ⏳ CIO synthesizing...\n'));
-  const cio = await runClaude(prompts.cio(ticker, bull, bear, quant, macro));
+  console.log(chalk.gray('\n  ⏳ CIO synthesizing (5 views)...\n'));
+  const cio = await runClaude(prompts.cio(ticker, bull, bear, quant, macro, leopold));
   showBox('👔 CIO CONSENSUS CALL', cio, 'yellow', 'double');
 
   console.log(chalk.gray('\n  ⏳ Contrarian loading counter-thesis...\n'));
-  const contrarian = await runClaude(prompts.contrarian(ticker, cio, bull, bear, quant, macro));
+  const contrarian = await runClaude(prompts.contrarian(ticker, cio, bull, bear, quant, macro, leopold));
   showBox('🔥 CONTRARIAN CALL', contrarian, 'red', 'double');
 
-  const pdfPath = await generatePDF(ticker, name, price, change, { bull, bear, quant, macro }, cio, contrarian);
+  const pdfPath = await generatePDF(ticker, name, price, change, { bull, bear, quant, macro, leopold }, cio, contrarian);
   console.log(chalk.green(`\n  ✅ PDF saved: ${pdfPath}\n`));
 }
 
