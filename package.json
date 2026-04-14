@@ -1,0 +1,19 @@
+{
+  "name": "war-room",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "tsx war-room.ts"
+  },
+  "dependencies": {
+    "boxen": "^8.0.0",
+    "chalk": "^5.3.0",
+    "pdfkit": "^0.15.0",
+    "yahoo-finance2": "^2.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/pdfkit": "^0.13.0",
+    "tsx": "^4.19.0"
+  }
+}
